@@ -6,6 +6,6 @@ public class Lessons
 {
     [JsonPropertyName("GroupCode")] 
     public required Guid GroupId { get; set; }
-    public required List<DayOfWeek> ScheduleFirstWeek { get; set; }
-    public required List<DayOfWeek> ScheduleSecondWeek { get; set; }
+    public required List<DaySchedule> ScheduleFirstWeek { get; set; }
+    public required List<DaySchedule> ScheduleSecondWeek { get; set; }
 }
