@@ -2,6 +2,10 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KpiSchedule.Api", "KpiSchedule.Api\KpiSchedule.Api.csproj", "{324D6759-7DD1-4212-B169-6A570AB5A082}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KpiSchedule.TelegramBot", "KpiSchedule.TelegramBot\KpiSchedule.TelegramBot.csproj", "{6B79923C-660C-4FFF-8FEF-F110FF5A57D1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KpiSchedule.Database", "KpiSchedule.Database\KpiSchedule.Database.csproj", "{BCFAD903-F9E8-42E0-9F96-D853DFFEF95D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +16,13 @@ Global
 		{324D6759-7DD1-4212-B169-6A570AB5A082}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{324D6759-7DD1-4212-B169-6A570AB5A082}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{324D6759-7DD1-4212-B169-6A570AB5A082}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B79923C-660C-4FFF-8FEF-F110FF5A57D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B79923C-660C-4FFF-8FEF-F110FF5A57D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B79923C-660C-4FFF-8FEF-F110FF5A57D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B79923C-660C-4FFF-8FEF-F110FF5A57D1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BCFAD903-F9E8-42E0-9F96-D853DFFEF95D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BCFAD903-F9E8-42E0-9F96-D853DFFEF95D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BCFAD903-F9E8-42E0-9F96-D853DFFEF95D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BCFAD903-F9E8-42E0-9F96-D853DFFEF95D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
