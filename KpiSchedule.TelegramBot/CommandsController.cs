@@ -40,7 +40,7 @@ public class CommandsController
         switch (commandText)
         {
             case "/g":
-                await SelectGroup(botClient, message.Chat.Id, commandText);
+                await SelectGroup(botClient, message.Chat.Id, update.Message.Text);
                 break;
             case "/today":
                 await Today(botClient, message.Chat.Id);
@@ -125,6 +125,25 @@ public class CommandsController
                 ParseMode.Markdown);
         }
     }
+
+    private static string BuildDaySchedule(DaySchedule daySchedule)
+    {
+        var ret = "*" + daySchedule.DayName + ":*\n";
+        var orderedLessons = daySchedule.Lessons
+            .OrderBy(x => ScheduleService.GetLessonIdByStartTime(x.Time) + 1)
+            .GroupBy(x => ScheduleService.GetLessonIdByStartTime(x.Time) + 1);
+        
+        foreach (var lessonNumber in orderedLessons)
+        {
+            foreach (var lesson in lessonNumber)
+            {
+                ret += lessonNumber.Key + ". ";
+                ret += lesson.Name + "\n";
+            }
+        }
+
+        return ret;
+    }
     
     public async Task Today(ITelegramBotClient botClient, long chatId)
     {
@@ -135,7 +154,7 @@ public class CommandsController
             return;
         }
         
-        await ScheduleByDay(botClient, chatId, today);
+        await botClient.SendTextMessageAsync(chatId, BuildDaySchedule(today), ParseMode.Markdown);
     }
     
     public async Task Tomorrow(ITelegramBotClient botClient, long chatId)
@@ -147,22 +166,7 @@ public class CommandsController
             return;
         }
         
-        await ScheduleByDay(botClient, chatId, tomorrow);
-    }
-
-    private async Task ScheduleByDay(ITelegramBotClient botClient, long chatId, DaySchedule daySchedule)
-    {
-        var ret = "*" + daySchedule.DayName + ":*\n";
-        var orderedLessons = daySchedule.Lessons
-            .OrderBy(x => ScheduleService.GetLessonIdByStartTime(x.Time)+1).ToList();
-        
-        foreach (var lesson in orderedLessons)
-        {
-            ret += (ScheduleService.GetLessonIdByStartTime(lesson.Time)+1) + ". ";
-            ret += lesson.Name + "\n";
-        }
-        
-        await botClient.SendTextMessageAsync(chatId, ret, ParseMode.Markdown);
+        await botClient.SendTextMessageAsync(chatId, BuildDaySchedule(tomorrow), ParseMode.Markdown);
     }
     
     public async Task Week(ITelegramBotClient botClient, long chatId)
@@ -177,22 +181,24 @@ public class CommandsController
         await ScheduleByWeek(botClient, chatId, nextWeek);
     }
 
-    private async Task ScheduleByWeek(ITelegramBotClient botClient, long chatId, List<DaySchedule> week)
+    private async Task ScheduleByWeek(ITelegramBotClient botClient, long chatId, List<DaySchedule>? week)
     {
         var ret = "";
-        foreach (var day in week)
-        {
-            ret += "*" + day.DayName + ":*\n";
-            var orderedLessons = day.Lessons.OrderBy(x => ScheduleService.GetLessonIdByStartTime(x.Time)+1).ToList();
-            foreach (var lesson in orderedLessons)
-            {
-                ret += (ScheduleService.GetLessonIdByStartTime(lesson.Time)+1) + ". ";
-                ret += lesson.Name + "\n";
-            }
 
-            ret += "\n";
+        if (week is not null)
+        {
+            foreach (var day in week)
+            {
+                ret += BuildDaySchedule(day);
+
+                ret += "\n";
+            }
         }
-        
+        else
+        {
+            ret = "Групу не знайдено";
+        }
+
         await botClient.SendTextMessageAsync(chatId, ret, ParseMode.Markdown);
     }
     
