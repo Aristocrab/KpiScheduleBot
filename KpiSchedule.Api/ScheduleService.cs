@@ -92,141 +92,123 @@ public class ScheduleService
         return lecturers.Data;
     }
 
-    public async Task<LecturerInfo> GetLecturerById(string lecturerId)
+    public async Task<LecturerInfo?> GetLecturerSchedule(Guid lecturerId)
     {
-        var lecturer = await _scheduleApi.GetLecturerById(lecturerId);
-        return lecturer;
+        var lecturer = await _scheduleApi.GetLecturerSchedule(lecturerId);
+
+        if (lecturer.Data.LecturerId == Guid.Empty) return null;
+        
+        return lecturer.Data;
     }
 
     public async Task<CurrentTime> GetCurrentTime()
     {
-        return (await _scheduleApi.GetCurrentTime()).Data;
+        var time = (await _scheduleApi.GetCurrentTime()).Data;
+        time.CurrentDay = (time.CurrentDay + 6) % 7;
+        return time;
     }
 
-    public async Task<Lessons> GetLessons(Guid groupId)
+    public async Task<Lessons?> GetLessons(Guid groupId)
     {
-        return (await _scheduleApi.GetLessons(groupId)).Data;
+        var lessons = (await _scheduleApi.GetLessons(groupId)).Data;
+        if (lessons.GroupId == Guid.Empty) return null;
+        
+        return lessons;
     }
     
     public async Task<Lesson?> GetCurrentLesson(Guid groupId)
     {
         var time = await GetCurrentTime();
         var lessons = await GetLessons(groupId);
+        if (lessons is null) return null;
         var currentLesson = GetCurrentLessonIdByTime(TimeOnly.FromDateTime(DateTime.Now));
 
         if (currentLesson == -1) return null;
         
-        List<DaySchedule> today;
+        List<DaySchedule> weekSchedule;
         if (time.CurrentWeek == 0)
         {
-            today = lessons.ScheduleFirstWeek;
+            weekSchedule = lessons.ScheduleFirstWeek;
         }
         else
         {
-            today = lessons.ScheduleSecondWeek;
+            weekSchedule = lessons.ScheduleSecondWeek;
         }
 
-        return today[(time.CurrentDay+6)%7].Lessons[currentLesson];
+        return weekSchedule[(time.CurrentDay+6)%7].Lessons[currentLesson];
     }
     
     public async Task<DaySchedule?> GetTodaySchedule(Guid groupId)
     {
         var time = await GetCurrentTime();
-        var lessons = await GetLessons(groupId);
-
-        if (time.CurrentDay == 0)
-        {
-            return null;
-        }
-        
-        List<DaySchedule> today;
-        if (time.CurrentWeek == 0)
-        {
-            today = lessons.ScheduleFirstWeek;
-        }
-        else
-        {
-            today = lessons.ScheduleSecondWeek;
-        }
-
-        return today[(time.CurrentDay+6)%7];
+        return await GetDaySchedule(groupId, time.CurrentDay, time.CurrentWeek);
     }
     
     public async Task<DaySchedule?> GetTomorrowSchedule(Guid groupId)
     {
         var time = await GetCurrentTime();
-        var lessons = await GetLessons(groupId);
+        return await GetDaySchedule(groupId, time.CurrentDay + 1, 
+            time.CurrentDay == 6 ? (time.CurrentWeek+1)%2 : time.CurrentWeek);
+    }
 
-        if (time.CurrentDay == 6)
+    public async Task<DaySchedule?> GetDaySchedule(Guid groupId, int day, int week)
+    {
+        var lessons = await GetLessons(groupId);
+        if (lessons is null) return null;
+
+        if (day == 6)
         {
             return null;
         }
         
-        List<DaySchedule> today;
-        if (time.CurrentDay == 0)
+        List<DaySchedule> weekSchedule;
+        if (week == 0)
         {
-            if (time.CurrentWeek == 0)
-            {
-                today = lessons.ScheduleSecondWeek;
-            }
-            else
-            {
-                today = lessons.ScheduleFirstWeek;
-            }
+            weekSchedule = lessons.ScheduleFirstWeek;
         }
         else
         {
-            if (time.CurrentWeek == 0)
-            {
-                today = lessons.ScheduleFirstWeek;
-            }
-            else
-            {
-                today = lessons.ScheduleSecondWeek;
-            }
+            weekSchedule = lessons.ScheduleSecondWeek;
         }
-        
-        return today[time.CurrentDay];
+
+        return weekSchedule[day];
     }
     
-    public async Task<List<DaySchedule>> GetCurrentWeek(Guid groupId)
+    public async Task<List<DaySchedule>?> GetCurrentWeek(Guid groupId)
     {
         var time = await GetCurrentTime();
-        var schedule = await GetLessons(groupId);
+        return await GetWeekSchedule(groupId, time.CurrentWeek);
+    }
+    
+    public async Task<List<DaySchedule>?> GetNextWeek(Guid groupId)
+    {
+        var time = await GetCurrentTime();
+        return await GetWeekSchedule(groupId, (time.CurrentWeek+1)%2);
+    }
+
+    public async Task<List<DaySchedule>?> GetWeekSchedule(Guid groupId, int week)
+    {
+        var lessons = await GetLessons(groupId);
+        if (lessons is null) return null;
         
         List<DaySchedule> currentWeek;
-        if (time.CurrentWeek == 0)
+        if (week == 0)
         {
-            currentWeek = schedule.ScheduleFirstWeek;
+            currentWeek = lessons.ScheduleFirstWeek;
         }
         else
         {
-            currentWeek = schedule.ScheduleSecondWeek;
+            currentWeek = lessons.ScheduleSecondWeek;
         }
 
         return currentWeek;
     }
     
-    public async Task<List<DaySchedule>> GetNextWeek(Guid groupId)
+    public async Task<List<Exam>?> GetExams(Guid groupId)
     {
-        var time = await GetCurrentTime();
-        var schedule = await GetLessons(groupId);
-        
-        List<DaySchedule> currentWeek;
-        if (time.CurrentWeek == 0)
-        {
-            currentWeek = schedule.ScheduleSecondWeek;
-        }
-        else
-        {
-            currentWeek = schedule.ScheduleFirstWeek;
-        }
-
-        return currentWeek;
-    }
-    
-    public async Task<List<Exam>> GetExams(Guid groupId)
-    {
-        return (await _scheduleApi.GetExams(groupId)).Data;
+        var exams = (await _scheduleApi.GetExams(groupId)).Data;
+        return exams.Count == 0 
+            ? null 
+            : exams;
     }
 }
