@@ -7,6 +7,6 @@ public class LecturerInfo
     [JsonPropertyName("LecturerName")] 
     public Guid LecturerId { get; set; }
     
-    public required List<DayOfWeek> ScheduleFirstWeek { get; set; }
-    public required List<DayOfWeek> ScheduleSecondWeek { get; set; }
+    public required List<LecturerDaySchedule> ScheduleFirstWeek { get; set; }
+    public required List<LecturerDaySchedule> ScheduleSecondWeek { get; set; }
 }

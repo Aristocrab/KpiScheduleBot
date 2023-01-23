@@ -16,7 +16,7 @@ public interface IScheduleApi
     Task<LecturersDto> GetLecturers();
     
     [Get("/api/schedule/lecturer")]
-    Task<LecturerInfo> GetLecturerById(string lecturerId);
+    Task<LecturerScheduleDto> GetLecturerSchedule(Guid lecturerId);
     
     [Get("/api/time/current")]
     Task<CurrentTimeDto> GetCurrentTime();
