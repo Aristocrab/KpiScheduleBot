@@ -194,7 +194,8 @@ public class CommandsController
 
     private async Task ScheduleByWeek(ITelegramBotClient botClient, long chatId, List<DaySchedule>? week)
     {
-        var ret = "";
+        var time = await _scheduleService.GetCurrentTime();
+        var ret = $"*{time.CurrentWeek+1}-ий тиждень*\n";
 
         if (week is not null)
         {
