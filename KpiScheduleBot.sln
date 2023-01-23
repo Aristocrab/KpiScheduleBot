@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KpiSchedule.TelegramBot", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KpiSchedule.Database", "KpiSchedule.Database\KpiSchedule.Database.csproj", "{BCFAD903-F9E8-42E0-9F96-D853DFFEF95D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KpiSchedule.Api.Tests", "KpiSchedule.Api.Tests\KpiSchedule.Api.Tests.csproj", "{8F85E51C-5959-45BB-BF68-E383144C0BFB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{BCFAD903-F9E8-42E0-9F96-D853DFFEF95D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BCFAD903-F9E8-42E0-9F96-D853DFFEF95D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BCFAD903-F9E8-42E0-9F96-D853DFFEF95D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F85E51C-5959-45BB-BF68-E383144C0BFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F85E51C-5959-45BB-BF68-E383144C0BFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F85E51C-5959-45BB-BF68-E383144C0BFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F85E51C-5959-45BB-BF68-E383144C0BFB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
