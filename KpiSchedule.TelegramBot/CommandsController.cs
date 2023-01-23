@@ -1,6 +1,7 @@
 ﻿using KpiSchedule.Api;
 using KpiSchedule.Api.Entities.Lessons;
 using KpiSchedule.Database;
+using Serilog;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -11,19 +12,24 @@ public class CommandsController
 {
     private readonly ScheduleService _scheduleService;
     private readonly KpiScheduleDbContext _dbContext;
+    private readonly ILogger _logger;
     private ChatSettings _currentChat = null!;
 
-    public CommandsController(ScheduleService scheduleService, KpiScheduleDbContext dbContext)
+    public CommandsController(ScheduleService scheduleService, KpiScheduleDbContext dbContext, ILogger logger)
     {
         _scheduleService = scheduleService;
         _dbContext = dbContext;
+        _logger = logger;
     }
     
     public async Task HandleCommand(ITelegramBotClient botClient, Update update)
     {
         if (update.Message?.Text is null) return;
+        
         var message = update.Message;
         var commandText = update.Message.Text.Split(' ')[0].ToLower();
+        
+        _logger.Information("ChatId: {ChatId}, command '{Command}'", update.Message.Chat.Id, commandText);
 
         var settings = _dbContext.ChatsSettings.FirstOrDefault(x => x.ChatId == update.Message.Chat.Id);
         if (settings is null && commandText != "/g")
@@ -31,7 +37,6 @@ public class CommandsController
             await Start(botClient, update.Message.Chat.Id);
             return;
         }
-
         if (settings != null)
         {
             _currentChat = settings;
@@ -67,7 +72,13 @@ public class CommandsController
             case "/exams":
                 await Exams(botClient, message.Chat.Id);
                 break;
+            case "/start":
+            case "/help":
+            case "/info":
+                await Start(botClient, message.Chat.Id);
+                break;
             default:
+                _logger.Warning("ChatId: {ChatId}, command '{Command}' was not found", update.Message.Chat.Id, commandText);
                 await Start(botClient, message.Chat.Id);
                 break;
         }
@@ -261,6 +272,12 @@ public class CommandsController
     {
         var exams = await _scheduleService.GetExams(_currentChat.GroupId);
 
+        if (exams is null)
+        {
+            await botClient.SendTextMessageAsync(chatId, "Екзамени не знайдено", ParseMode.Markdown);
+            return;
+        }
+        
         var ret = "";
         foreach (var exam in exams)
         {

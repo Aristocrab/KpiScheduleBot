@@ -1,9 +1,13 @@
 ﻿using KpiSchedule.TelegramBot;
 using Microsoft.Extensions.Configuration;
+using Serilog;
 
 var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()
     .Build();
+var logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateLogger();
 
 if (config["TelegramBotApiKey"] is null)
 {
@@ -11,10 +15,9 @@ if (config["TelegramBotApiKey"] is null)
     return;
 }
 
-var bot = new TelegramBot(config["TelegramBotApiKey"]!);
+var bot = new TelegramBot(config["TelegramBotApiKey"]!, logger);
 
 bot.StartReceiving();
-Console.WriteLine("Bot started");
 Console.ReadLine();
 
 bot.Stop();

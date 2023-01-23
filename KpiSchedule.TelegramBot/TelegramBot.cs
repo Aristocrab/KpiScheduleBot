@@ -1,5 +1,6 @@
 ﻿using KpiSchedule.Api;
 using KpiSchedule.Database;
+using Serilog;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -14,17 +15,22 @@ public class TelegramBot
     private CancellationTokenSource _cancellationTokenSource { get; set; }
     private CommandsController _commandsController { get; set; }
     private KpiScheduleDbContext _dbContext { get; set; }
+    private ILogger _logger { get; set; }
     
-    public TelegramBot(string token)
+    public TelegramBot(string token, ILogger logger)
     {
         _botClient = new TelegramBotClient(token);
         _cancellationTokenSource = new CancellationTokenSource();
         _dbContext = new KpiScheduleDbContext();
-        _commandsController = new CommandsController(new ScheduleService(), _dbContext);
+
+        _logger = logger;
+        var scheduleService = new ScheduleService();
+        _commandsController = new CommandsController(scheduleService, _dbContext, _logger);
     }
 
     public void StartReceiving()
     {
+        _logger.Information("Telegram bot started");
         _botClient.StartReceiving(
             updateHandler: HandleUpdates,
             pollingErrorHandler: HandleErrors,
@@ -55,7 +61,7 @@ public class TelegramBot
             _ => exception.ToString()
         };
 
-        Console.WriteLine(ErrorMessage);
+        _logger.Error(ErrorMessage);
         return Task.CompletedTask;
     }
 }
