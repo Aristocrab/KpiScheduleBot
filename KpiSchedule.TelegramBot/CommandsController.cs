@@ -29,7 +29,7 @@ public class CommandsController
         var message = update.Message;
         var commandText = update.Message.Text.Split(' ')[0].ToLower();
         
-        _logger.Information("ChatId: {ChatId}, command '{Command}'", update.Message.Chat.Id, commandText);
+        _logger.Information("ChatId: {ChatId}, command '{Command}'", message.Chat.Id, commandText);
 
         var settings = _dbContext.ChatsSettings.FirstOrDefault(x => x.ChatId == update.Message.Chat.Id);
         if (settings is null && commandText != "/g")
