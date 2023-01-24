@@ -10,19 +10,21 @@ namespace KpiSchedule.TelegramBot;
 
 public class CommandsController
 {
+    private readonly ITelegramBotClient _botClient;
     private readonly ScheduleService _scheduleService;
     private readonly KpiScheduleDbContext _dbContext;
     private readonly ILogger _logger;
     private ChatSettings _currentChat = null!;
 
-    public CommandsController(ScheduleService scheduleService, KpiScheduleDbContext dbContext, ILogger logger)
+    public CommandsController(ITelegramBotClient botClient, ScheduleService scheduleService, KpiScheduleDbContext dbContext, ILogger logger)
     {
+        _botClient = botClient;
         _scheduleService = scheduleService;
         _dbContext = dbContext;
         _logger = logger;
     }
     
-    public async Task HandleCommand(ITelegramBotClient botClient, Update update)
+    public async Task HandleCommand(Update update)
     {
         if (update.Message?.Text is null) return;
         
@@ -34,7 +36,7 @@ public class CommandsController
         var settings = _dbContext.ChatsSettings.FirstOrDefault(x => x.ChatId == update.Message.Chat.Id);
         if (settings is null && commandText != "/g")
         {
-            await Start(botClient, update.Message.Chat.Id);
+            await Start(update.Message.Chat.Id);
             return;
         }
         if (settings != null)
@@ -45,57 +47,57 @@ public class CommandsController
         switch (commandText)
         {
             case "/g":
-                await SelectGroup(botClient, message.Chat.Id, update.Message.Text);
+                await SelectGroup(message.Chat.Id, update.Message.Text);
                 break;
             case "/today":
-                await Today(botClient, message.Chat.Id);
+                await Today(message.Chat.Id);
                 break;
             case "/tomorrow":
-                await Tomorrow(botClient, message.Chat.Id);
+                await Tomorrow(message.Chat.Id);
                 break;
             case "/week":
-                await Week(botClient, message.Chat.Id);
+                await Week(message.Chat.Id);
                 break;
             case "/nextweek":
-                await NextWeek(botClient, message.Chat.Id);
+                await NextWeek(message.Chat.Id);
                 break;
             case "/timetable":
-                await TimeTable(botClient, message.Chat.Id);
+                await TimeTable(message.Chat.Id);
                 break;
             case "/who":
-                await Who(botClient, message.Chat.Id);
+                await Who(message.Chat.Id);
                 break;
             case "/left":
-                await Left(botClient, message.Chat.Id);
+                await Left(message.Chat.Id);
                 break;
             case "/exam":
             case "/exams":
-                await Exams(botClient, message.Chat.Id);
+                await Exams(message.Chat.Id);
                 break;
             case "/start":
             case "/help":
             case "/info":
-                await Start(botClient, message.Chat.Id);
+                await Start(message.Chat.Id);
                 break;
             default:
                 _logger.Warning("ChatId: {ChatId}, command '{Command}' was not found", update.Message.Chat.Id, commandText);
-                await Start(botClient, message.Chat.Id);
+                await Start(message.Chat.Id);
                 break;
         }
     }
 
-    public async Task Start(ITelegramBotClient botClient, long chatId)
+    public async Task Start(long chatId)
     {
-        await botClient.SendTextMessageAsync(chatId, 
+        await _botClient.SendTextMessageAsync(chatId, 
             "*Вас вітає бот з розкладу КПІ*\n\nОберіть групу командою /g\nПриклад: /g IC-12", 
             ParseMode.Markdown);
     }
 
-    public async Task SelectGroup(ITelegramBotClient botClient, long chatId, string messageText)
+    public async Task SelectGroup(long chatId, string messageText)
     {
         if (messageText.Split(' ').Length < 2)
         {
-            await Start(botClient, chatId);
+            await Start(chatId);
             return;
         }
 
@@ -104,7 +106,7 @@ public class CommandsController
 
         if (group is null)
         {
-            await botClient.SendTextMessageAsync(chatId, "Групу не знайдено. Приклад: '/g IC-12'");
+            await _botClient.SendTextMessageAsync(chatId, "Групу не знайдено. Приклад: '/g IC-12'");
         }
         else
         {
@@ -130,7 +132,7 @@ public class CommandsController
             
             await _dbContext.SaveChangesAsync();
             
-            await botClient.SendTextMessageAsync(chatId, 
+            await _botClient.SendTextMessageAsync(chatId, 
                 $"Обрано групу: *{_currentChat.GroupCode}*\n\n" +
                 "Приклади команд:\n/today\n/tomorrow\n/week\n/nextweek", 
                 ParseMode.Markdown);
@@ -156,43 +158,43 @@ public class CommandsController
         return ret;
     }
     
-    public async Task Today(ITelegramBotClient botClient, long chatId)
+    public async Task Today(long chatId)
     {
         var today = await _scheduleService.GetTodaySchedule(_currentChat.GroupId);
         if (today is null)
         {
-            await botClient.SendTextMessageAsync(chatId, "Сьогодні пар немає");
+            await _botClient.SendTextMessageAsync(chatId, "Сьогодні пар немає");
             return;
         }
         
-        await botClient.SendTextMessageAsync(chatId, BuildDaySchedule(today), ParseMode.Markdown);
+        await _botClient.SendTextMessageAsync(chatId, BuildDaySchedule(today), ParseMode.Markdown);
     }
     
-    public async Task Tomorrow(ITelegramBotClient botClient, long chatId)
+    public async Task Tomorrow(long chatId)
     {
         var tomorrow = await _scheduleService.GetTomorrowSchedule(_currentChat.GroupId);
         if (tomorrow is null)
         {
-            await botClient.SendTextMessageAsync(chatId, "Завтра пар немає");
+            await _botClient.SendTextMessageAsync(chatId, "Завтра пар немає");
             return;
         }
         
-        await botClient.SendTextMessageAsync(chatId, BuildDaySchedule(tomorrow), ParseMode.Markdown);
+        await _botClient.SendTextMessageAsync(chatId, BuildDaySchedule(tomorrow), ParseMode.Markdown);
     }
     
-    public async Task Week(ITelegramBotClient botClient, long chatId)
+    public async Task Week(long chatId)
     {
         var currentWeek = await _scheduleService.GetCurrentWeek(_currentChat.GroupId);
-        await ScheduleByWeek(botClient, chatId, currentWeek);
+        await ScheduleByWeek(chatId, currentWeek);
     }
     
-    public async Task NextWeek(ITelegramBotClient botClient, long chatId)
+    public async Task NextWeek(long chatId)
     {
         var nextWeek = await _scheduleService.GetNextWeek(_currentChat.GroupId);
-        await ScheduleByWeek(botClient, chatId, nextWeek);
+        await ScheduleByWeek(chatId, nextWeek);
     }
 
-    private async Task ScheduleByWeek(ITelegramBotClient botClient, long chatId, List<DaySchedule>? week)
+    private async Task ScheduleByWeek(long chatId, List<DaySchedule>? week)
     {
         var time = await _scheduleService.GetCurrentTime();
         var ret = $"*{time.CurrentWeek+1}-ий тиждень*\n";
@@ -211,10 +213,10 @@ public class CommandsController
             ret = "Групу не знайдено";
         }
 
-        await botClient.SendTextMessageAsync(chatId, ret, ParseMode.Markdown);
+        await _botClient.SendTextMessageAsync(chatId, ret, ParseMode.Markdown);
     }
     
-    public async Task TimeTable(ITelegramBotClient botClient, long chatId)
+    public async Task TimeTable(long chatId)
     {
         var ret = """
         *1 пара.* 08:30 - 10:05
@@ -224,24 +226,24 @@ public class CommandsController
         *5 пара.* 16:10 - 17:45
         """;
         
-        await botClient.SendTextMessageAsync(chatId, ret, ParseMode.Markdown);
+        await _botClient.SendTextMessageAsync(chatId, ret, ParseMode.Markdown);
     }
     
-    public async Task Who(ITelegramBotClient botClient, long chatId)
+    public async Task Who(long chatId)
     {
         var currentLesson = await _scheduleService.GetCurrentLesson(_currentChat.GroupId);
 
         if (currentLesson is null)
         {
-            await botClient.SendTextMessageAsync(chatId, "Зараз пар немає", ParseMode.Markdown);
+            await _botClient.SendTextMessageAsync(chatId, "Зараз пар немає", ParseMode.Markdown);
         }
         else
         {
-            await botClient.SendTextMessageAsync(chatId, currentLesson.TeacherName, ParseMode.Markdown);
+            await _botClient.SendTextMessageAsync(chatId, currentLesson.TeacherName, ParseMode.Markdown);
         }
     }
     
-    public async Task Left(ITelegramBotClient botClient, long chatId)
+    public async Task Left(long chatId)
     {
         var time = await _scheduleService.GetCurrentTime();
 
@@ -266,16 +268,16 @@ public class CommandsController
             }
         }
 
-        await botClient.SendTextMessageAsync(chatId, ret, ParseMode.Markdown);
+        await _botClient.SendTextMessageAsync(chatId, ret, ParseMode.Markdown);
     }
     
-    public async Task Exams(ITelegramBotClient botClient, long chatId)
+    public async Task Exams(long chatId)
     {
         var exams = await _scheduleService.GetExams(_currentChat.GroupId);
 
         if (exams is null)
         {
-            await botClient.SendTextMessageAsync(chatId, "Екзамени не знайдено", ParseMode.Markdown);
+            await _botClient.SendTextMessageAsync(chatId, "Екзамени не знайдено", ParseMode.Markdown);
             return;
         }
         
@@ -285,6 +287,6 @@ public class CommandsController
             ret += $"*{exam.Subject}*\n_{exam.LecturerName}_\n{exam.Date:dd.MM.yyyy HH:mm}. ({exam.Room})\n\n";
         }
 
-        await botClient.SendTextMessageAsync(chatId, ret, ParseMode.Markdown);
+        await _botClient.SendTextMessageAsync(chatId, ret, ParseMode.Markdown);
     }
 }

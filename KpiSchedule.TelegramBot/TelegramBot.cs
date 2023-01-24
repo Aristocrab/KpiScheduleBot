@@ -25,7 +25,7 @@ public class TelegramBot
 
         _logger = logger;
         var scheduleService = new ScheduleService();
-        _commandsController = new CommandsController(scheduleService, _dbContext, _logger);
+        _commandsController = new CommandsController(_botClient, scheduleService, _dbContext, _logger);
     }
 
     public void StartReceiving()
@@ -49,7 +49,7 @@ public class TelegramBot
 
     private async Task HandleUpdates(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
-        await _commandsController.HandleCommand(botClient, update);
+        await _commandsController.HandleCommand(update);
     }
 
     private Task HandleErrors(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
