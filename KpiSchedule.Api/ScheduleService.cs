@@ -135,7 +135,7 @@ public class ScheduleService
             weekSchedule = lessons.ScheduleSecondWeek;
         }
 
-        return weekSchedule[(time.CurrentDay+6)%7].Lessons[currentLesson];
+        return weekSchedule[time.CurrentDay].Lessons[currentLesson];
     }
     
     public async Task<DaySchedule?> GetTodaySchedule(Guid groupId)
