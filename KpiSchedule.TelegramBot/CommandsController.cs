@@ -14,7 +14,7 @@ public class CommandsController
     private readonly ScheduleService _scheduleService;
     private readonly KpiScheduleDbContext _dbContext;
     private readonly ILogger _logger;
-    private ChatSettings _currentChat = null!;
+    private ChatSettings _currentChatSettings = null!;
 
     public CommandsController(ITelegramBotClient botClient, ScheduleService scheduleService, KpiScheduleDbContext dbContext, ILogger logger)
     {
@@ -41,7 +41,7 @@ public class CommandsController
         }
         if (settings != null)
         {
-            _currentChat = settings;
+            _currentChatSettings = settings;
         }
         
         switch (commandText)
@@ -61,6 +61,9 @@ public class CommandsController
             case "/nextweek":
                 await NextWeek(message.Chat.Id);
                 break;
+            case "/full":
+                await Full(message.Chat.Id);
+                break;
             case "/timetable":
                 await TimeTable(message.Chat.Id);
                 break;
@@ -75,9 +78,10 @@ public class CommandsController
                 await Exams(message.Chat.Id);
                 break;
             case "/start":
-            case "/help":
-            case "/info":
                 await Start(message.Chat.Id);
+                break;
+            case "/help":
+                await Help(message.Chat.Id);
                 break;
             default:
                 _logger.Warning("ChatId: {ChatId}, command '{Command}' was not found", update.Message.Chat.Id, commandText);
@@ -90,6 +94,32 @@ public class CommandsController
     {
         await _botClient.SendTextMessageAsync(chatId, 
             "*Вас вітає бот з розкладу КПІ*\n\nОберіть групу командою /g\nПриклад: /g IC-12", 
+            ParseMode.Markdown);
+    }
+
+    public async Task Help(long chatId)
+    {
+        await _botClient.SendTextMessageAsync(chatId, 
+            """
+            *Вас вітає бот з розкладу КПІ*
+
+            Список команд:
+            /g - Змінити групу. Приклад: `/g ІС-12`
+
+            /today - Розклад на сьогодні
+            /tomorrow - Розклад на завтра
+
+            /week - Розклад на цей тиждень
+            /nextweek - Розклад на наступний тиждень
+            /full - Повний розклад за 2 тижні
+
+            /exams - Розклад екзаменів
+            /who - Ім'я викладача поточної пари
+            /timetable - Таблиця тривалості пар
+            /left - Час до кінця пари
+
+            /help - Список команд
+            """, 
             ParseMode.Markdown);
     }
 
@@ -121,26 +151,42 @@ public class CommandsController
                 };
                 _dbContext.ChatsSettings.Add(newUserSettings);
                 
-                _currentChat = newUserSettings;
+                _currentChatSettings = newUserSettings;
             }
             else
             {
                 userSettings.GroupCode = groupCode;
                 userSettings.GroupId = group.Id;
-                _currentChat = userSettings;
+                _currentChatSettings = userSettings;
             }
             
             await _dbContext.SaveChangesAsync();
             
             await _botClient.SendTextMessageAsync(chatId, 
-                $"Обрано групу: *{_currentChat.GroupCode}*\n\n" +
-                "Приклади команд:\n/today\n/tomorrow\n/week\n/nextweek", 
+                $"""
+                Обрано групу: *{_currentChatSettings.GroupCode}*
+
+                Приклади команд:
+                /today - Розклад на сьогодні
+                /tomorrow - Розклад на завтра
+
+                /week - Розклад на цей тиждень
+                /nextweek - Розклад на наступний тиждень
+                /full - Повний розклад за 2 тижні
+
+                /help - Повний список команд
+                """, 
                 ParseMode.Markdown);
         }
     }
 
     private static string BuildDaySchedule(DaySchedule daySchedule)
     {
+        if (daySchedule.Lessons.Count == 0 && daySchedule.DayName == "Сб")
+        {
+            return string.Empty;
+        }
+        
         var ret = "*" + daySchedule.DayName + ":*\n";
         var orderedLessons = daySchedule.Lessons
             .OrderBy(x => ScheduleService.GetLessonIdByStartTime(x.Time) + 1)
@@ -148,11 +194,9 @@ public class CommandsController
         
         foreach (var lessonNumber in orderedLessons)
         {
-            foreach (var lesson in lessonNumber)
-            {
-                ret += lessonNumber.Key + ". ";
-                ret += lesson.Name + "\n";
-            }
+            ret += lessonNumber.Key + ". ";
+            ret += string.Join("\n    ", lessonNumber.Select(x => x.Name));
+            ret += "\n";
         }
 
         return ret;
@@ -160,7 +204,7 @@ public class CommandsController
     
     public async Task Today(long chatId)
     {
-        var today = await _scheduleService.GetTodaySchedule(_currentChat.GroupId);
+        var today = await _scheduleService.GetTodaySchedule(_currentChatSettings.GroupId);
         if (today is null)
         {
             await _botClient.SendTextMessageAsync(chatId, "Сьогодні пар немає");
@@ -172,7 +216,7 @@ public class CommandsController
     
     public async Task Tomorrow(long chatId)
     {
-        var tomorrow = await _scheduleService.GetTomorrowSchedule(_currentChat.GroupId);
+        var tomorrow = await _scheduleService.GetTomorrowSchedule(_currentChatSettings.GroupId);
         if (tomorrow is null)
         {
             await _botClient.SendTextMessageAsync(chatId, "Завтра пар немає");
@@ -184,24 +228,30 @@ public class CommandsController
     
     public async Task Week(long chatId)
     {
-        var currentWeek = await _scheduleService.GetCurrentWeek(_currentChat.GroupId);
+        var currentWeek = (await _scheduleService.GetCurrentTime()).CurrentWeek;
         await ScheduleByWeek(chatId, currentWeek);
     }
     
     public async Task NextWeek(long chatId)
     {
-        var nextWeek = await _scheduleService.GetNextWeek(_currentChat.GroupId);
-        await ScheduleByWeek(chatId, nextWeek);
+        var nextWeek = (await _scheduleService.GetCurrentTime()).CurrentWeek;
+        await ScheduleByWeek(chatId, (nextWeek + 1) % 2);
+    }
+    
+    public async Task Full(long chatId)
+    {
+        await ScheduleByWeek(chatId, 0);
+        await ScheduleByWeek(chatId, 1);
     }
 
-    private async Task ScheduleByWeek(long chatId, List<DaySchedule>? week)
+    private async Task ScheduleByWeek(long chatId, int week)
     {
-        var time = await _scheduleService.GetCurrentTime();
-        var ret = $"*{time.CurrentWeek+1}-ий тиждень*\n";
+        var weekSchedule = await _scheduleService.GetWeekSchedule(_currentChatSettings.GroupId, week);
+        var ret = $"*{week+1}-ий тиждень*\n";
 
-        if (week is not null)
+        if (weekSchedule is not null)
         {
-            foreach (var day in week)
+            foreach (var day in weekSchedule)
             {
                 ret += BuildDaySchedule(day);
 
@@ -231,7 +281,7 @@ public class CommandsController
     
     public async Task Who(long chatId)
     {
-        var currentLesson = await _scheduleService.GetCurrentLesson(_currentChat.GroupId);
+        var currentLesson = await _scheduleService.GetCurrentLesson(_currentChatSettings.GroupId);
 
         if (currentLesson is null)
         {
@@ -239,7 +289,11 @@ public class CommandsController
         }
         else
         {
-            await _botClient.SendTextMessageAsync(chatId, currentLesson.TeacherName, ParseMode.Markdown);
+            var ret = $"""
+            {currentLesson.TeacherName}
+            _{currentLesson.Name}_
+            """;
+            await _botClient.SendTextMessageAsync(chatId, ret, ParseMode.Markdown);
         }
     }
     
@@ -273,7 +327,7 @@ public class CommandsController
     
     public async Task Exams(long chatId)
     {
-        var exams = await _scheduleService.GetExams(_currentChat.GroupId);
+        var exams = await _scheduleService.GetExams(_currentChatSettings.GroupId);
 
         if (exams is null)
         {
