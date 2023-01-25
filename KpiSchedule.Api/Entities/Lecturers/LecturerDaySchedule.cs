@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using KpiSchedule.Api.Entities.Lessons;
 
 namespace KpiSchedule.Api.Entities.Lecturers;
 

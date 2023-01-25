@@ -9,7 +9,7 @@ public class Lecturer
     [JsonPropertyName("Id")]
     public string? NullableId
     {
-        set { Id = string.IsNullOrEmpty(value) ? Guid.Empty : Guid.Parse(value); }
+        set => Id = string.IsNullOrEmpty(value) ? Guid.Empty : Guid.Parse(value);
     }
 
     public required string Name { get; set; }
