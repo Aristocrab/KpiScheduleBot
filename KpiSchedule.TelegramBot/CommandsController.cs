@@ -84,7 +84,7 @@ public class CommandsController
                 await Help(message.Chat.Id);
                 break;
             default:
-                _logger.Warning("ChatId: {ChatId}, command '{Command}' was not found", update.Message.Chat.Id, commandText);
+                _logger.Warning("ChatId: {ChatId}, command '{Command}' was not found", update.Message.Chat.Id, update.Message.Text);
                 await Start(message.Chat.Id);
                 break;
         }
