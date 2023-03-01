@@ -29,14 +29,14 @@ public class CommandsController
         if (update.Message?.Text is null) return;
         
         var message = update.Message;
-        var commandText = update.Message.Text.Split(' ')[0].ToLower();
+        var commandText = message.Text.Split(' ')[0].ToLower();
         
         _logger.Information("ChatId: {ChatId}, command '{Command}'", message.Chat.Id, commandText);
 
-        var settings = _dbContext.ChatsSettings.FirstOrDefault(x => x.ChatId == update.Message.Chat.Id);
+        var settings = _dbContext.ChatsSettings.FirstOrDefault(x => x.ChatId == message.Chat.Id);
         if (settings is null && commandText != "/g")
         {
-            await Start(update.Message.Chat.Id);
+            await Start(message.Chat.Id);
             return;
         }
         if (settings != null)
@@ -47,7 +47,7 @@ public class CommandsController
         switch (commandText)
         {
             case "/g":
-                await SelectGroup(message.Chat.Id, update.Message.Text);
+                await SelectGroup(message.Chat.Id, message.Text);
                 break;
             case "/today":
                 await Today(message.Chat.Id);
@@ -84,7 +84,7 @@ public class CommandsController
                 await Help(message.Chat.Id);
                 break;
             default:
-                _logger.Warning("ChatId: {ChatId}, command '{Command}' was not found", update.Message.Chat.Id, update.Message.Text);
+                _logger.Warning("ChatId: {ChatId}, command '{Command}' was not found", message.Chat.Id, message.Text);
                 await Start(message.Chat.Id);
                 break;
         }

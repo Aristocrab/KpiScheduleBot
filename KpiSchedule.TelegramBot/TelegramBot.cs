@@ -11,21 +11,20 @@ namespace KpiSchedule.TelegramBot;
 
 public class TelegramBot
 {
-    private TelegramBotClient _botClient { get; set; }
-    private CancellationTokenSource _cancellationTokenSource { get; set; }
-    private CommandsController _commandsController { get; set; }
-    private KpiScheduleDbContext _dbContext { get; set; }
-    private ILogger _logger { get; set; }
+    private readonly TelegramBotClient _botClient;
+    private readonly CancellationTokenSource _cancellationTokenSource;
+    private readonly CommandsController _commandsController;
+    private readonly ILogger _logger;
     
     public TelegramBot(string token, ILogger logger)
     {
         _botClient = new TelegramBotClient(token);
         _cancellationTokenSource = new CancellationTokenSource();
-        _dbContext = new KpiScheduleDbContext();
-
         _logger = logger;
+        
+        var dbContext = new KpiScheduleDbContext();
         var scheduleService = new ScheduleService();
-        _commandsController = new CommandsController(_botClient, scheduleService, _dbContext, _logger);
+        _commandsController = new CommandsController(_botClient, scheduleService, dbContext, _logger);
     }
 
     public void StartReceiving()
@@ -54,14 +53,14 @@ public class TelegramBot
 
     private Task HandleErrors(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
     {
-        var ErrorMessage = exception switch
+        var errorMessage = exception switch
         {
             ApiRequestException apiRequestException
                 => $"Telegram API Error:\n[{apiRequestException.ErrorCode}]\n{apiRequestException.Message}",
             _ => exception.ToString()
         };
 
-        _logger.Error(ErrorMessage);
+        _logger.Error(errorMessage);
         return Task.CompletedTask;
     }
 }

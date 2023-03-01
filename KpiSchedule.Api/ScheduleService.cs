@@ -104,6 +104,7 @@ public class ScheduleService
     public async Task<CurrentTime> GetCurrentTime()
     {
         var time = (await _scheduleApi.GetCurrentTime()).Data;
+        // Api returns 6 for Monday. Change it to 0
         time.CurrentDay = (time.CurrentDay + 6) % 7;
         return time;
     }
