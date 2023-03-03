@@ -1,3 +1,4 @@
+using Refit;
 using Xunit;
 
 namespace KpiSchedule.Api.Tests;
@@ -8,7 +9,7 @@ public class ScheduleServiceTests
     
     public ScheduleServiceTests()
     {
-        _sut = new ScheduleService();
+        _sut = new ScheduleService(RestService.For<IScheduleApi>("https://schedule.kpi.ua"));
     }
 
     [Fact]

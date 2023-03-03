@@ -3,7 +3,6 @@ using KpiSchedule.Api.Entities.Groups;
 using KpiSchedule.Api.Entities.Lecturers;
 using KpiSchedule.Api.Entities.Lessons;
 using KpiSchedule.Api.Entities.Time;
-using Refit;
 
 namespace KpiSchedule.Api;
 
@@ -11,9 +10,9 @@ public class ScheduleService
 {
     private readonly IScheduleApi _scheduleApi;
 
-    public ScheduleService(string apiUrl = "https://schedule.kpi.ua")
+    public ScheduleService(IScheduleApi scheduleApi)
     {
-        _scheduleApi = RestService.For<IScheduleApi>(apiUrl);
+        _scheduleApi = scheduleApi;
     }
 
     public static int GetLessonIdByStartTime(string time)
@@ -175,13 +174,13 @@ public class ScheduleService
         return weekSchedule[day];
     }
     
-    public async Task<List<DaySchedule>?> GetCurrentWeek(Guid groupId)
+    public async Task<List<DaySchedule>?> GetCurrentWeekSchedule(Guid groupId)
     {
         var time = await GetCurrentTime();
         return await GetWeekSchedule(groupId, time.CurrentWeek);
     }
     
-    public async Task<List<DaySchedule>?> GetNextWeek(Guid groupId)
+    public async Task<List<DaySchedule>?> GetNextWeekSchedule(Guid groupId)
     {
         var time = await GetCurrentTime();
         return await GetWeekSchedule(groupId, (time.CurrentWeek+1)%2);

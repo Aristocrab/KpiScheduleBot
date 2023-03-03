@@ -1,5 +1,6 @@
 ﻿using KpiSchedule.Api;
 using KpiSchedule.Database;
+using Refit;
 using Serilog;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -23,7 +24,7 @@ public class TelegramBot
         _logger = logger;
         
         var dbContext = new KpiScheduleDbContext();
-        var scheduleService = new ScheduleService();
+        var scheduleService = new ScheduleService(RestService.For<IScheduleApi>("https://schedule.kpi.ua"));
         _commandsController = new CommandsController(_botClient, scheduleService, dbContext, _logger);
     }
 
