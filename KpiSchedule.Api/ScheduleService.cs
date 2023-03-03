@@ -103,7 +103,7 @@ public class ScheduleService
     public async Task<CurrentTime> GetCurrentTime()
     {
         var time = (await _scheduleApi.GetCurrentTime()).Data;
-        // Api returns 6 for Monday. Change it to 0
+        // Change days of the week order from Sun-Sat to Mon-Sun
         time.CurrentDay = (time.CurrentDay + 6) % 7;
         return time;
     }
@@ -121,19 +121,11 @@ public class ScheduleService
         var time = await GetCurrentTime();
         var lessons = await GetLessons(groupId);
         if (lessons is null) return null;
-        var currentLesson = GetCurrentLessonIdByTime(TimeOnly.FromDateTime(DateTime.Now));
-
-        if (currentLesson == -1) return null;
         
-        List<DaySchedule> weekSchedule;
-        if (time.CurrentWeek == 0)
-        {
-            weekSchedule = lessons.ScheduleFirstWeek;
-        }
-        else
-        {
-            weekSchedule = lessons.ScheduleSecondWeek;
-        }
+        var currentLesson = GetCurrentLessonIdByTime(TimeOnly.FromDateTime(DateTime.Now));
+        if (currentLesson == -1) return null;
+
+        var weekSchedule = time.CurrentWeek == 0 ? lessons.ScheduleFirstWeek : lessons.ScheduleSecondWeek;
 
         return weekSchedule[time.CurrentDay].Lessons[currentLesson];
     }
@@ -147,8 +139,10 @@ public class ScheduleService
     public async Task<DaySchedule?> GetTomorrowSchedule(Guid groupId)
     {
         var time = await GetCurrentTime();
-        return await GetDaySchedule(groupId, time.CurrentDay + 1, 
-            time.CurrentDay == 6 ? (time.CurrentWeek+1)%2 : time.CurrentWeek);
+        var tommorowDay = (time.CurrentDay + 1) % 7;
+        var tommorowWeek = time.CurrentDay == 6 ? (time.CurrentWeek + 1) % 2 : time.CurrentWeek;
+
+        return await GetDaySchedule(groupId, tommorowDay, tommorowWeek);
     }
 
     public async Task<DaySchedule?> GetDaySchedule(Guid groupId, int day, int week)
@@ -207,8 +201,6 @@ public class ScheduleService
     public async Task<List<Exam>?> GetExams(Guid groupId)
     {
         var exams = (await _scheduleApi.GetExams(groupId)).Data;
-        return exams.Count == 0 
-            ? null 
-            : exams;
+        return exams.Count == 0 ? null : exams;
     }
 }
